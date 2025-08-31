@@ -192,41 +192,41 @@ def display_answer_input():
     
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
+        # 자동 포커스를 위한 JavaScript
+        st.markdown("""
+        <script>
+        setTimeout(function() {
+            const inputs = document.querySelectorAll('input[type="text"]');
+            if (inputs.length > 0) {
+                const lastInput = inputs[inputs.length - 1];
+                lastInput.focus();
+                lastInput.select();
+                
+                // Enter 키 이벤트 리스너 추가
+                lastInput.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        const buttons = document.querySelectorAll('button[kind="primary"]');
+                        if (buttons.length > 0) {
+                            buttons[buttons.length - 1].click();
+                        }
+                    }
+                });
+            }
+        }, 200);
+        </script>
+        """, unsafe_allow_html=True)
+        
         user_input = st.text_input(
             "답:",
             key=f"user_input_{current_idx}",
-            placeholder="숫자 입력",
+            placeholder="숫자 입력 후 Enter",
             label_visibility="collapsed"
         )
-        
-        # Enter 키로 제출 가능하도록 JavaScript 추가
-        st.markdown(f"""
-        <script>
-        document.addEventListener('DOMContentLoaded', function() {{
-            setTimeout(function() {{
-                const input = document.querySelector('input[aria-label="답:"]');
-                if (input) {{
-                    input.focus();
-                    input.addEventListener('keydown', function(e) {{
-                        if (e.key === 'Enter') {{
-                            e.preventDefault();
-                            const submitBtn = document.querySelector('button[kind="primary"]');
-                            if (submitBtn) submitBtn.click();
-                        }}
-                    }});
-                }}
-            }}, 100);
-        }});
-        </script>
-        """, unsafe_allow_html=True)
         
         if st.button("📱 제출", type="primary", use_container_width=True, key=f"submit_{current_idx}"):
             submit_answer()
             st.rerun()
-        
-        # Enter 키 감지를 위한 숨겨진 처리
-        if user_input and user_input != st.session_state.get(f"last_input_{current_idx}", ""):
-            st.session_state[f"last_input_{current_idx}"] = user_input
 
 def display_final_results():
     """최종 결과 화면 표시"""
@@ -367,17 +367,18 @@ def main():
             else:
                 st.error(f"😅 {st.session_state.last_result}")
             
-            # 다음 문제가 있으면 자동으로 시작 (2초 후)
+            # 다음 문제가 있으면 2초 후 자동으로 시작
             if current_idx < 10:
                 st.markdown("<hr>", unsafe_allow_html=True)
                 st.markdown(f"""
                 <div style='text-align: center; padding: 20px 0;'>
                 <h3>다음 문제</h3>
                 <h1 style='font-size: 3em; color: #1f77b4;'>{st.session_state.questions[current_idx]} = ?</h1>
+                <p style='color: #666; font-size: 16px;'>2초 후 자동 시작...</p>
                 </div>
                 """, unsafe_allow_html=True)
                 
-                # 2초 후 자동으로 다음 문제 시작
+                # 2초 대기 후 자동으로 다음 문제 시작
                 time.sleep(2)
                 next_question()
                 st.rerun()
