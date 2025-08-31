@@ -229,25 +229,32 @@ def display_answer_input():
                 st.rerun()
 
 def display_result_and_next():
-    """결과 표시 및 즉시 다음 문제 시작"""
+    """결과 표시와 동시에 다음 문제 + 입력칸 표시"""
     current_idx = st.session_state.current_question
     
-    # 결과 메시지 표시
+    # 이전 문제 결과 표시
     if "정답" in st.session_state.last_result:
         st.success(f"🎉 {st.session_state.last_result}")
     else:
         st.error(f"😅 {st.session_state.last_result}")
     
-    # 다음 문제가 있는 경우 즉시 다음 문제 시작
-    if current_idx < 9:
+    # 다음 문제가 있는 경우
+    if current_idx < 10:
         st.markdown("<div style='margin: 20px 0; border-top: 2px dashed #ccc;'></div>", unsafe_allow_html=True)
         
-        # 즉시 다음 문제로 이동하고 입력칸 표시
-        next_question()
-        st.rerun()
+        # 현재 문제 표시 + 입력칸 (결과 표시와 동시에)
+        if display_question_with_timer():
+            display_answer_input()
+            # 타이머 업데이트
+            time.sleep(0.1)
+            st.rerun()
+        else:
+            # 시간 초과 처리
+            check_answer()
+            st.rerun()
     else:
-        # 마지막 문제인 경우
-        time.sleep(2)
+        # 모든 문제 완료
+        time.sleep(1)
         st.session_state.game_finished = True
         st.rerun()
 
@@ -471,7 +478,7 @@ def main():
         
         # 결과 표시 중인 경우 (이전 문제 결과 + 현재 문제 입력)
         if st.session_state.show_result:
-            display_result_with_next_question()
+            display_result_and_next()
         
         # 첫 문제 또는 순수 답안 입력 상태
         else:
