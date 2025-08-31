@@ -208,8 +208,8 @@ def display_answer_input():
     """개선된 답안 입력 인터페이스"""
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        # 폼을 사용하여 Enter 키 지원
-        with st.form(key="answer_form", clear_on_submit=True):
+        # 폼을 사용하여 Enter 키 지원 (clear_on_submit 제거)
+        with st.form(key=f"answer_form_{st.session_state.current_question}"):
             user_input = st.text_input(
                 "답:",
                 key="answer_input",
@@ -227,6 +227,28 @@ def display_answer_input():
             if submit_button:
                 check_answer()
                 st.rerun()
+        
+        # 강화된 자동 포커스 적용
+        st.markdown("""
+        <script>
+        setTimeout(function() {
+            const inputs = document.querySelectorAll('input[type="text"]');
+            if (inputs.length > 0) {
+                const input = inputs[inputs.length - 1];
+                input.focus();
+                input.select();
+                
+                // 강제로 여러 번 포커스 시도
+                for (let i = 0; i < 5; i++) {
+                    setTimeout(() => {
+                        input.focus();
+                        input.select();
+                    }, i * 100);
+                }
+            }
+        }, 50);
+        </script>
+        """, unsafe_allow_html=True)
 
 def display_result_and_next():
     """결과 표시와 동시에 다음 문제 + 입력칸 표시"""
@@ -400,35 +422,72 @@ def setup_mobile_styles():
     """, unsafe_allow_html=True)
 
 def auto_focus_script():
-    """자동 포커스 JavaScript (개선된 버전)"""
+    """강화된 자동 포커스 JavaScript"""
     st.markdown("""
     <script>
-    function focusInput() {
-        setTimeout(function() {
+    function focusInputAggressively() {
+        // 여러 번 시도하여 확실히 포커스
+        let attempts = 0;
+        const maxAttempts = 10;
+        
+        function tryFocus() {
             const inputs = document.querySelectorAll('input[type="text"]');
             if (inputs.length > 0) {
                 const input = inputs[inputs.length - 1];
                 input.focus();
                 input.select();
+                
+                // 포커스가 제대로 되었는지 확인
+                if (document.activeElement === input) {
+                    console.log('Input focused successfully');
+                    return true;
+                }
             }
-        }, 100);
+            
+            attempts++;
+            if (attempts < maxAttempts) {
+                setTimeout(tryFocus, 50);
+            }
+            return false;
+        }
+        
+        tryFocus();
     }
     
-    // 페이지 로드 시 포커스
-    focusInput();
+    // 즉시 실행
+    focusInputAggressively();
     
-    // Streamlit 재렌더링 후 포커스 (MutationObserver 사용)
+    // DOM 변경 감지하여 다시 포커스
     const observer = new MutationObserver(function(mutations) {
+        let shouldFocus = false;
         mutations.forEach(function(mutation) {
             if (mutation.type === 'childList') {
-                focusInput();
+                mutation.addedNodes.forEach(function(node) {
+                    if (node.nodeType === 1) { // Element node
+                        const inputs = node.querySelectorAll ? node.querySelectorAll('input[type="text"]') : [];
+                        if (inputs.length > 0 || (node.tagName === 'INPUT' && node.type === 'text')) {
+                            shouldFocus = true;
+                        }
+                    }
+                });
             }
         });
+        
+        if (shouldFocus) {
+            setTimeout(focusInputAggressively, 10);
+        }
     });
     
     observer.observe(document.body, {
         childList: true,
         subtree: true
+    });
+    
+    // 페이지 클릭 시에도 포커스 유지
+    document.addEventListener('click', function(e) {
+        if (e.target.tagName !== 'INPUT') {
+            setTimeout(focusInputAggressively, 10);
+        }
     });
     </script>
     """, unsafe_allow_html=True)
