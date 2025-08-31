@@ -102,8 +102,13 @@ def check_answer():
             st.session_state.user_answers.append(None)
             st.session_state.last_result = f"❌ 올바른 숫자를 입력해주세요. 정답은 {correct_answer}입니다."
     
-    # 결과 표시 모드로 전환
-    st.session_state.show_result = True
+    # 다음 문제로 바로 이동 (결과 표시는 동시에)
+    if st.session_state.current_question < 9:
+        st.session_state.current_question += 1
+        st.session_state.question_start_time = time.time()
+        st.session_state.show_result = True
+    else:
+        st.session_state.game_finished = True
     
     # 입력 필드 초기화
     if 'answer_input' in st.session_state:
@@ -224,7 +229,7 @@ def display_answer_input():
                 st.rerun()
 
 def display_result_and_next():
-    """결과 표시 및 다음 문제 준비"""
+    """결과 표시 및 즉시 다음 문제 시작"""
     current_idx = st.session_state.current_question
     
     # 결과 메시지 표시
@@ -233,29 +238,18 @@ def display_result_and_next():
     else:
         st.error(f"😅 {st.session_state.last_result}")
     
-    st.markdown("<hr>", unsafe_allow_html=True)
-    
-    # 다음 문제가 있는 경우
+    # 다음 문제가 있는 경우 즉시 다음 문제 시작
     if current_idx < 9:
-        st.markdown(f"""
-        <div style='text-align: center; padding: 20px 0;'>
-        <h3>🔜 다음 문제</h3>
-        <h1 style='font-size: 3em; color: #1f77b4; opacity: 0.7;'>{st.session_state.questions[current_idx + 1]} = ?</h1>
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown("<div style='margin: 20px 0; border-top: 2px dashed #ccc;'></div>", unsafe_allow_html=True)
         
-        col1, col2, col3 = st.columns([1, 2, 1])
-        with col2:
-            if st.button("▶️ 다음 문제 시작", type="primary", use_container_width=True):
-                next_question()
-                st.rerun()
+        # 즉시 다음 문제로 이동하고 입력칸 표시
+        next_question()
+        st.rerun()
     else:
         # 마지막 문제인 경우
-        col1, col2, col3 = st.columns([1, 2, 1])
-        with col2:
-            if st.button("🏁 결과 보기", type="primary", use_container_width=True):
-                st.session_state.game_finished = True
-                st.rerun()
+        time.sleep(2)
+        st.session_state.game_finished = True
+        st.rerun()
 
 def display_final_results():
     """최종 결과 화면 표시"""
@@ -475,11 +469,11 @@ def main():
         </div>
         """, unsafe_allow_html=True)
         
-        # 결과 표시 중인 경우
+        # 결과 표시 중인 경우 (이전 문제 결과 + 현재 문제 입력)
         if st.session_state.show_result:
-            display_result_and_next()
+            display_result_with_next_question()
         
-        # 답안 입력 대기 중인 경우
+        # 첫 문제 또는 순수 답안 입력 상태
         else:
             # 시간 체크
             elapsed = time.time() - st.session_state.question_start_time
